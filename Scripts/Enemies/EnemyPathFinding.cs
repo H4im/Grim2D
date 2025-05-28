@@ -1,0 +1,124 @@
+using UnityEngine;
+
+public class EnemyPathFinding : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 2f;
+    private Rigidbody2D rb;
+    private Vector2 moveDir;
+    public Animator myAnimator;
+    private SpriteRenderer mySpriteRenderer;
+    private Vector2 LastMoveDir;
+    private Knockback knockback;
+
+    private void Awake()
+    {
+        knockback = GetComponent<Knockback>();
+        rb = GetComponent<Rigidbody2D>();
+        myAnimator = GetComponent<Animator>();
+        mySpriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    private void FixedUpdate()
+    {
+        // Move the NPC
+        if (knockback.GettingKnockedBack) { return; }
+
+        rb.MovePosition(rb.position + moveDir * (moveSpeed * Time.fixedDeltaTime));
+
+        // Update animation direction
+        UpdateAnimationDirection();
+    }
+
+    public void UpdateLastDirection(Vector2 direction)
+    {
+        LastMoveDir = direction;
+        SetIdleDirection(LastMoveDir); // Ensure it plays the idle animation for the last direction
+    }
+
+    private void UpdateAnimationDirection()
+    {
+        // If the NPC is moving
+        if (moveDir.x != 0 || moveDir.y != 0)
+        {
+            SetAnimationDirection(moveDir); // Set walking animation if moving
+        }
+        else
+        {
+            // If the NPC is stopped, ensure idle animation triggers correctly
+            SetIdleDirection(LastMoveDir); // Set idle animation based on the last direction
+        }
+    }
+
+    public void MoveTo(Vector2 targetPosition)
+    {
+        if (targetPosition != Vector2.zero)
+        {
+            moveDir = targetPosition;
+            // Debugging moveDir
+        }
+        else
+        {
+            moveDir = Vector2.zero; // Ensure NPC is not moving
+            // Debug.Log("NPC has stopped");
+        }
+    }
+
+    private void SetIdleDirection(Vector2 direction)
+    {
+        // Ensure we reset all idle animation triggers before setting the new one
+        myAnimator.ResetTrigger("IdleRight");
+        myAnimator.ResetTrigger("IdleLeft");
+
+        // Set the correct trigger based on the last move direction
+
+            if (LastMoveDir.x > 0) // Idle right
+            {
+                myAnimator.SetTrigger("IdleRight");
+            }
+            else if (LastMoveDir.x < 0) // Idle left
+            {
+                myAnimator.SetTrigger("IdleLeft");
+            }
+
+    }
+
+    private void SetAnimationDirection(Vector2 direction)
+    {
+            if (direction.x > 0) // Moving right
+            {
+                myAnimator.SetFloat("moveX", 1);
+            }
+            else if (direction.x < 0) // Moving left
+            {
+                myAnimator.SetFloat("moveX", -1);
+            }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Wall"))
+        {
+            ChangeDirection();
+        }
+    }
+    private void ChangeDirection()
+    {
+        if (Random.value > 0.6f) // 50% chance
+        {
+            moveDir = -moveDir; // Reverse movement direction
+        }
+        else
+        {
+            moveDir = Vector2.zero; // Stop moving (idle)
+        }
+    }
+
+    public void StopMoving()
+    {
+        moveDir= Vector2.zero;  
+    }
+
+
+
+}
+
